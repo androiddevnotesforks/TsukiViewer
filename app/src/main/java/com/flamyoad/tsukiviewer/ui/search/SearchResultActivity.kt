@@ -27,6 +27,7 @@ class SearchResultActivity : AppCompatActivity() {
         val title = intent.getStringExtra(SearchActivity.SEARCH_TITLE) ?: ""
         val tags = intent.getStringExtra(SearchActivity.SEARCH_TAGS) ?: ""
 
+        // ??????? change to viewmodelscope thnx
         lifecycleScope.launch {
             viewmodel.submitQuery(title, tags)
         }

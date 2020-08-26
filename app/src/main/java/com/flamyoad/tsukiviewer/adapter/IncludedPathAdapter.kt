@@ -7,30 +7,30 @@ import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.flamyoad.tsukiviewer.R
-import com.flamyoad.tsukiviewer.model.IncludedFolder
-import com.flamyoad.tsukiviewer.ui.settings.includedfolders.RemoveFolderListener
+import com.flamyoad.tsukiviewer.model.IncludedPath
+import com.flamyoad.tsukiviewer.ui.settings.includedfolders.RemovePathListener
 import java.lang.IllegalArgumentException
 
-class IncludedFolderAdapter(private val listener: RemoveFolderListener) :
+class IncludedPathAdapter(private val listener: RemovePathListener) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    private val FOLDER_ITEM = 0
+    private val PATH_ITEM = 0
     private val EMPTY_INDICATOR = 1
 
-    private var folderList = emptyList<IncludedFolder>()
+    private var pathList = emptyList<IncludedPath>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         when (viewType) {
-            FOLDER_ITEM -> {
+            PATH_ITEM -> {
                 val view = LayoutInflater.from(parent.context)
-                    .inflate(R.layout.included_folders_item, parent, false)
+                    .inflate(R.layout.included_path_item, parent, false)
 
-                val holder = FolderViewHolder(view)
+                val holder = PathViewHolder(view)
 
                 val btnDelete = view.findViewById<ImageButton>(R.id.btnDelete)
                 btnDelete.setOnClickListener {
-                    val folder = folderList[holder.adapterPosition]
-                    listener.deleteFolder(folder)
+                    val path = pathList[holder.adapterPosition]
+                    listener.removePath(path)
                 }
 
                 return holder
@@ -50,41 +50,44 @@ class IncludedFolderAdapter(private val listener: RemoveFolderListener) :
     }
 
     override fun getItemCount(): Int {
-        return if (folderList.isNotEmpty()) {
-            folderList.size
+        return if (pathList.isNotEmpty()) {
+            pathList.size
         } else {
             1
         }
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (folderList.isNullOrEmpty()) {
+        return if (pathList.isNullOrEmpty()) {
             EMPTY_INDICATOR
         } else {
-            FOLDER_ITEM
+            PATH_ITEM
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder.itemViewType) {
-            FOLDER_ITEM -> {
-                val folderHolder = holder as FolderViewHolder
-                folderHolder.bind(folderList[holder.adapterPosition])
+            PATH_ITEM -> {
+                val pathHolder = holder as PathViewHolder
+
+                val adapterPosition = pathHolder.adapterPosition
+
+                pathHolder.bind(pathList[adapterPosition])
             }
         }
     }
 
-    fun setList(list: List<IncludedFolder>) {
-        folderList = list
+    fun setList(list: List<IncludedPath>) {
+        pathList = list
         notifyDataSetChanged()
     }
 
-    inner class FolderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    inner class PathViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val txtDirectory: TextView = itemView.findViewById(R.id.txtDirectory)
         private val btnDelete: ImageButton = itemView.findViewById(R.id.btnDelete)
 
-        fun bind(folder: IncludedFolder) {
-            txtDirectory.text = folder.dir.canonicalPath
+        fun bind(item: IncludedPath) {
+            txtDirectory.text = item.dir.canonicalPath
         }
     }
 }

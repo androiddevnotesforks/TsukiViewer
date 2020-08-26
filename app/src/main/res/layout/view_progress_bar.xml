@@ -6,7 +6,7 @@
     android:paddingEnd="12dp">
 
     <ProgressBar
-        android:id="@+id/progressBarSync"
+        android:id="@+id/progressBarLoading"
         style="?android:attr/progressBarStyleSmallTitle"
         android:theme="@style/WhiteProgressBarTheme"
         android:layout_width="wrap_content"

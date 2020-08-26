@@ -18,7 +18,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.flamyoad.tsukiviewer.R
 import com.flamyoad.tsukiviewer.adapter.FolderPickerAdapter
 import com.flamyoad.tsukiviewer.adapter.ParentDirectoriesAdapter
-import com.flamyoad.tsukiviewer.ui.settings.includedfolders.AddFolderListener
+import com.flamyoad.tsukiviewer.ui.settings.includedfolders.AddPathListener
 import kotlinx.coroutines.*
 import java.io.File
 import java.util.*
@@ -39,7 +39,7 @@ class FolderPickerDialog : DialogFragment(),
 
     private lateinit var currentDir: File
 
-    private lateinit var addFolderListener: AddFolderListener
+    private lateinit var addFolderListener: AddPathListener
 
     private var job: Job? = null
 
@@ -54,7 +54,7 @@ class FolderPickerDialog : DialogFragment(),
         window?.setGravity(Gravity.CENTER)
     }
 
-    fun setAddFolderListener(listener: AddFolderListener) {
+    fun setAddFolderListener(listener: AddPathListener) {
         addFolderListener = listener
     }
 
@@ -67,7 +67,7 @@ class FolderPickerDialog : DialogFragment(),
         val dialogBuilder = AlertDialog.Builder(requireActivity())
             .setTitle("Pick folder")
             .setPositiveButton("OK", DialogInterface.OnClickListener { dialogInterface, i ->
-                addFolderListener.addFolder(currentDir)
+                addFolderListener.addPath(currentDir)
             })
             .setNegativeButton("Cancel", DialogInterface.OnClickListener { dialogInterface, i ->
                 dialog?.dismiss()

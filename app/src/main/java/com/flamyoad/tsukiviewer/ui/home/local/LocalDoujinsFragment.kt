@@ -3,7 +3,7 @@ package com.flamyoad.tsukiviewer.ui.home.local
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
-import android.preference.PreferenceManager
+import android.util.Log
 import android.view.*
 import android.widget.CheckBox
 import android.widget.ProgressBar
@@ -20,7 +20,6 @@ import com.flamyoad.tsukiviewer.adapter.LocalDoujinsAdapter
 import com.flamyoad.tsukiviewer.ui.search.SearchActivity
 import com.flamyoad.tsukiviewer.utils.ItemOffsetDecoration
 import kotlinx.android.synthetic.main.fragment_local_doujins.*
-import kotlinx.android.synthetic.main.view_progress_bar.*
 import kotlinx.coroutines.launch
 
 class LocalDoujinsFragment : Fragment() {
@@ -29,9 +28,14 @@ class LocalDoujinsFragment : Fragment() {
 
     private lateinit var adapter: LocalDoujinsAdapter
 
-    private lateinit var syncProgressBar: ProgressBar
+    private lateinit var loadingProgressBar: ProgressBar
 
     private lateinit var toast: Toast
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        viewmodel.listFolders()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -52,14 +56,15 @@ class LocalDoujinsFragment : Fragment() {
         val menuItem = menu.findItem(R.id.progress_bar_sync)
         val view = menuItem.actionView
 
-        syncProgressBar = view.findViewById(R.id.progressBarSync)
-        syncProgressBar.visibility = View.GONE
+        loadingProgressBar = view.findViewById(R.id.progressBarLoading)
+        loadingProgressBar.visibility = View.GONE
 
-        viewmodel.isSyncing().observe(viewLifecycleOwner, Observer { stillSynchronizing ->
-            if (stillSynchronizing) {
-                syncProgressBar.visibility = View.VISIBLE
+        viewmodel.isFetchingDoujins().observe(viewLifecycleOwner, Observer { isFetchingDoujins ->
+            Log.d("fuck", "Status: $isFetchingDoujins")
+            if (isFetchingDoujins) {
+                loadingProgressBar.visibility = View.VISIBLE
             } else {
-                syncProgressBar.visibility = View.GONE
+                loadingProgressBar.visibility = View.GONE
             }
         })
     }
@@ -113,10 +118,6 @@ class LocalDoujinsFragment : Fragment() {
                 toast.setText(it)
                 toast.show()
             }
-        })
-
-        viewmodel.includedFolderList.observe(viewLifecycleOwner, Observer {
-            viewmodel.fetchDoujinsFromDir(it)
         })
     }
 

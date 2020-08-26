@@ -12,8 +12,8 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.flamyoad.tsukiviewer.ui.settings.folderpicker.FolderPickerDialog
 import com.flamyoad.tsukiviewer.R
-import com.flamyoad.tsukiviewer.adapter.IncludedFolderAdapter
-import com.flamyoad.tsukiviewer.model.IncludedFolder
+import com.flamyoad.tsukiviewer.adapter.IncludedPathAdapter
+import com.flamyoad.tsukiviewer.model.IncludedPath
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import kotlinx.android.synthetic.main.activity_included_folder.*
@@ -21,12 +21,12 @@ import java.io.File
 
 
 class IncludedFolderActivity : AppCompatActivity(),
-    AddFolderListener,
-    RemoveFolderListener {
+    AddPathListener,
+    RemovePathListener {
 
     private lateinit var viewModel: IncludedFolderViewModel
 
-    private lateinit var adapter: IncludedFolderAdapter
+    private lateinit var adapter: IncludedPathAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +57,7 @@ class IncludedFolderActivity : AppCompatActivity(),
     }
 
     private fun initRecyclerview() {
-        adapter = IncludedFolderAdapter(this)
+        adapter = IncludedPathAdapter(this)
         listDirectoryChosen.adapter = adapter
 
         val linearLayoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
@@ -69,7 +69,7 @@ class IncludedFolderActivity : AppCompatActivity(),
         )
         listDirectoryChosen.addItemDecoration(dividerItemDecoration)
 
-        viewModel.folderList.observe(this, Observer {
+        viewModel.pathList.observe(this, Observer {
             adapter.setList(it)
         })
     }
@@ -99,20 +99,20 @@ class IncludedFolderActivity : AppCompatActivity(),
         dialogFragment.setAddFolderListener(this)
     }
 
-    override fun addFolder(dir: File) {
+    override fun addPath(dir: File) {
         viewModel.insert(dir)
     }
 
-    override fun deleteFolder(includedFolder: IncludedFolder) {
-        viewModel.delete(includedFolder)
+    override fun removePath(includedPath: IncludedPath) {
+        viewModel.delete(includedPath)
     }
 
 }
 
-interface AddFolderListener {
-    fun addFolder(dir: File)
+interface AddPathListener {
+    fun addPath(dir: File)
 }
 
-interface RemoveFolderListener {
-    fun deleteFolder(includedFolder: IncludedFolder)
+interface RemovePathListener {
+    fun removePath(includedPath: IncludedPath)
 }
