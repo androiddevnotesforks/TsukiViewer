@@ -6,15 +6,18 @@ import androidx.core.net.toUri
 import androidx.lifecycle.*
 import com.flamyoad.tsukiviewer.model.Doujin
 import com.flamyoad.tsukiviewer.model.IncludedFolder
+import com.flamyoad.tsukiviewer.model.IncludedPath
 import com.flamyoad.tsukiviewer.repository.MetadataRepository
 import com.flamyoad.tsukiviewer.utils.ImageFileFilter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-
 class LocalDoujinViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val imageExtensions = arrayOf("jpg", "png", "gif", "jpeg")
 
     val repo = MetadataRepository(application)
 
@@ -22,20 +25,28 @@ class LocalDoujinViewModel(application: Application) : AndroidViewModel(applicat
 
     private val toastText = MutableLiveData<String?>(null)
 
+    private val pathList: LiveData<List<IncludedPath>>
+
     private val folderList: LiveData<List<IncludedFolder>>
 
     private val tempFolders = MutableLiveData<MutableList<Doujin>>()
 
-    val doujinList = MediatorLiveData<List<Doujin>>()
+    private val doujinList = MediatorLiveData<List<Doujin>>()
+
+    private var jobScanFolder: Job = Job()
 
     fun isFetchingDoujins(): LiveData<Boolean> = isFetchingDoujins
 
     fun toastText(): LiveData<String?> = toastText
 
+    fun folderList(): LiveData<List<IncludedFolder>> = folderList
+
     fun doujinList(): LiveData<List<Doujin>> = doujinList
 
     init {
         folderList = repo.folderDao.getAll()
+
+        pathList = repo.pathDao.getAll()
 
         doujinList.apply {
             addSource(folderList) { convertFoldersToDoujins(it) }
@@ -43,25 +54,105 @@ class LocalDoujinViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        Log.d("testbug", "ViewModel onCleared() called")
+    }
+
     private fun convertFoldersToDoujins(folders: List<IncludedFolder>) {
         viewModelScope.launch {
             isFetchingDoujins.value = true
 
-            withContext(Dispatchers.IO) {
+            withContext(Dispatchers.Default) {
                 val newList = folders.map { f -> f.dir }
-                val oldList = tempFolders.value?.map { doujin -> doujin.path } ?: emptyList()
 
-                val itemsToBeAdded = newList.minus(oldList)
-
-                for (file in itemsToBeAdded) {
+                for (file in newList) {
                     val doujin = file.toDoujin()
 
                     withContext(Dispatchers.Main) {
-                        val currentDoujins = tempFolders.value ?: mutableListOf()
-                        currentDoujins.add(doujin)
+                        val currentList = tempFolders.value ?: mutableListOf()
+                        if (!currentList.contains(doujin)) {
+                            currentList.add(doujin)
+                            tempFolders.value = currentList
+                        }
 
-                        tempFolders.value = currentDoujins
                     }
+                }
+            }
+            isFetchingDoujins.value = false
+        }
+    }
+
+//    private fun convertFoldersToDoujins(folders: List<IncludedFolder>) {
+//        viewModelScope.launch {
+//            isFetchingDoujins.value = true
+//
+//            withContext(Dispatchers.Default) {
+//                val newList = folders.map { f -> f.dir }
+//
+//                for (file in newList) {
+//                    val doujin = file.toDoujin()
+//
+//                    withContext(Dispatchers.Main) {
+//                        val currentList = tempFolders.value ?: mutableListOf()
+//                        if (!currentList.contains(doujin)) {
+//                            currentList.add(doujin)
+//                            tempFolders.value = currentList
+//                        }
+//
+//                    }
+//                }
+//            }
+//            isFetchingDoujins.value = false
+//        }
+//    }
+
+    fun filterRemovedFolders(includedFolder: List<IncludedFolder>) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val newDoujinList = includedFolder
+                    .map { folder -> folder.dir.toDoujin() }
+                    .toList()
+
+                withContext(Dispatchers.Main) {
+                    doujinList.value = newDoujinList
+                }
+            }
+        }
+    }
+
+//    fun filterRemovedFolders(includedFolder: List<IncludedFolder>) {
+//        viewModelScope.launch {
+//            var includedDoujins: List<Doujin>
+//
+//            withContext(Dispatchers.Default) {
+//                val list = doujinList.value?.toMutableList() ?: mutableListOf()
+//                if (list.isNotEmpty()) {
+//                    val includedDir = includedFolder.map { folder -> folder.dir }
+//
+//                    for (i in list.indices) {
+//                        val doujin = list[i]
+//                        if (doujin.path !in includedDir) {
+//                            list.removeAt(i)
+//
+//                            withContext(Dispatchers.Main) {
+//                                doujinList.value = list
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+
+    fun checkForNewFolders() {
+        jobScanFolder = viewModelScope.launch {
+            isFetchingDoujins.value = true
+
+            withContext(Dispatchers.IO) {
+                val paths = repo.pathDao.getAllBlocking()
+                for (path in paths) {
+                    val subdirs = scanFoldersWithImages(path.dir, path.dir)
                 }
             }
 
@@ -69,44 +160,21 @@ class LocalDoujinViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    fun listFolders() {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val pathWithFolders = repo.folderDao.getPathWithFolders()
+    private suspend fun scanFoldersWithImages(parent: File, current: File) {
+        if (current.isDirectory) {
+            val childs = current.listFiles()
+            if (childs.any { f -> f.extension in imageExtensions }) {
+                repo.folderDao.insert(IncludedFolder(current, parent, current.name))
+            }
 
-                pathWithFolders.forEach {
-                    val parentDir = it.path.dir
-                    val folders = it.folders
-
-                    var amountOfDoujins = 0
-
-                    folders.forEach { item ->
-                        if (item.isDoujin()) {
-                            amountOfDoujins++
-                        }
-                    }
-
-                    if (amountOfDoujins != getSubdirectoriesCount(parentDir)) {
-                        scanForNewFolders(parentDir)
-                    }
-                }
+            for (child in childs) {
+                scanFoldersWithImages(parent, child)
             }
         }
     }
 
-    private fun getSubdirectoriesCount(dir: File): Int {
-        val subDirectories = dir.walk()
-            .map { f -> f.isDirectory }
-        return subDirectories.count()
-    }
-
-    private suspend fun scanForNewFolders(dir: File) {
-        val subDirectories = dir.walk()
-            .filter { f -> f.hasImageFiles() }
-            .map { f -> IncludedFolder(f, dir, f.name) }
-            .toList()
-
-        repo.folderDao.insertAll(subDirectories)
+    fun cancelScan() {
+        jobScanFolder.cancel()
     }
 
     fun File.toDoujin(): Doujin {
@@ -161,41 +229,18 @@ class LocalDoujinViewModel(application: Application) : AndroidViewModel(applicat
     }
 }
 
-// This method is recursive
-//    private suspend fun scanForSubdirectories(currentDir: File, parentDir: File, list: MutableList<IncludedFolder>) {
-//        if (currentDir.hasImageFiles()) {
-//            list.add(IncludedFolder(currentDir, parentDir, currentDir.name))
-//        }
-//
-//        for (f in currentDir.listFiles()) {
-//            if (f.isDirectory) {
-//                if (f.hasImageFiles()) {
-//                    list.add(IncludedFolder(f, parentDir, f.name))
-//                }
-//                scanForSubdirectories(f, parentDir, list)
-//            }
-//        }
-//    }
 
-//// Recursive method to search for directories & sub-directories
-//// todo: this method doesnt include the main directory itself, fix it
-//private suspend fun walk(currentDir: File, list: MutableList<IncludedFolder>) {
-//    for (f in currentDir.listFiles()) {
-//        if (f.isDirectory) {
-//            val imageList = f.listFiles(ImageFileFilter()).sorted()
+//private suspend fun scanFolder(parent: File, current: File) {
+//    if (current.isDirectory) {
+//        Log.d("checkdir", current.toString())
+//        if (current.hasImageFiles()) {
+//            val includedFolder = IncludedFolder(current, parent, current.name)
+//            repo.folderDao.insert(includedFolder)
+//        }
 //
-//            if (imageList.isNotEmpty()) {
-//                val coverImage = imageList.first().toUri()
-//                val title = f.name
-//                val numberOfImages = imageList.size
-//                val lastModified = f.lastModified()
-//
-//                doujinList.add(
-//                    Doujin(coverImage, title, numberOfImages, lastModified, f)
-//                )
-//            }
-//
-//            walk(f)
+//        val childDirectories = current.listFiles()
+//        for (childDir in childDirectories) {
+//            scanFolder(parent, childDir)
 //        }
 //    }
 //}

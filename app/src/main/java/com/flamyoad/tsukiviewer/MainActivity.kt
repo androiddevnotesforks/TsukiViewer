@@ -11,6 +11,7 @@ import androidx.core.view.GravityCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.flamyoad.tsukiviewer.ui.home.favourite.FavouriteDoujinFragment
+import com.flamyoad.tsukiviewer.ui.home.local.LocalDoujinViewModel
 import com.flamyoad.tsukiviewer.ui.home.local.LocalDoujinsFragment
 import com.flamyoad.tsukiviewer.ui.home.online.OnlineDoujinFragment
 import com.flamyoad.tsukiviewer.ui.settings.SettingsActivity
@@ -24,10 +25,14 @@ import java.net.URL
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
+    private lateinit var localDoujinViewModel: LocalDoujinViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
+
+        localDoujinViewModel = ViewModelProvider(this).get(LocalDoujinViewModel::class.java)
 
         val toggle = ActionBarDrawerToggle(
             this, drawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
@@ -59,6 +64,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             R.id.nav_settings -> {
                 val intent = Intent(this, SettingsActivity::class.java)
                 startActivity(intent)
+                localDoujinViewModel.cancelScan()
             }
         }
 

@@ -34,7 +34,26 @@ class LocalDoujinsFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewmodel.listFolders()
+        Log.d("testbug", "onCreate() called")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("testbug", "onResume() called")
+        viewmodel.checkForNewFolders()
+        viewmodel.folderList().observe(this, Observer {
+            viewmodel.filterRemovedFolders(it)
+        })
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.d("testbug", "onPause() called")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Log.d("testbug", "onStop() called")
     }
 
     override fun onCreateView(
@@ -110,6 +129,7 @@ class LocalDoujinsFragment : Fragment() {
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
+
         initRecyclerView()
         toast = Toast.makeText(context, "", Toast.LENGTH_LONG)
 
@@ -119,6 +139,8 @@ class LocalDoujinsFragment : Fragment() {
                 toast.show()
             }
         })
+
+        Log.d("testbug", "onActivityCreated() called")
     }
 
     private fun openSyncAlertDialog() {
@@ -170,7 +192,8 @@ class LocalDoujinsFragment : Fragment() {
 
     private fun initRecyclerView() {
         adapter = LocalDoujinsAdapter()
-        adapter.setHasStableIds(true)
+//        adapter.setHasStableIds(true)
+
         val gridLayoutManager = GridLayoutManager(context, 2)
 
         listLocalDoujins.adapter = adapter
@@ -179,7 +202,7 @@ class LocalDoujinsFragment : Fragment() {
         listLocalDoujins.setHasFixedSize(true)
 
         viewmodel.doujinList().observe(viewLifecycleOwner, Observer { newList ->
-            adapter.setList(newList)
+            adapter.submitList(newList)
         })
     }
 

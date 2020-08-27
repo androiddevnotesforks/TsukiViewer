@@ -18,5 +18,8 @@ interface IncludedFolderDao {
     suspend fun getPathWithFolders(): List<IncludedPathWithFolders>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(folder: IncludedFolder)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(list: List<IncludedFolder>)
 }

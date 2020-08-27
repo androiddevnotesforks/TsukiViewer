@@ -7,20 +7,23 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions.withCrossFade
 import com.flamyoad.tsukiviewer.R
 import com.flamyoad.tsukiviewer.model.Doujin
 import com.flamyoad.tsukiviewer.model.SortDirection
 import com.flamyoad.tsukiviewer.ui.doujinpage.DoujinDetailsActivity
+import com.flamyoad.tsukiviewer.utils.DoujinDiffCallback
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
 import java.io.File
 import java.util.*
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions.withCrossFade
 
 
 class LocalDoujinsAdapter
-    : RecyclerView.Adapter<LocalDoujinsAdapter.DoujinViewHolder>(), RecyclerViewFastScroller.OnPopupTextUpdate {
+    : ListAdapter<Doujin, LocalDoujinsAdapter.DoujinViewHolder>(DoujinDiffCallback()),
+      RecyclerViewFastScroller.OnPopupTextUpdate {
 
     companion object {
         const val DOUJIN_FILE_PATH = "LocalDoujinsAdapter.DOUJIN_FILE_PATH"
@@ -53,7 +56,7 @@ class LocalDoujinsAdapter
                 return@setOnClickListener
             }
 
-            val doujin = doujinList[adapterPosition]
+            val doujin = getItem(adapterPosition)
 
             val intent = Intent(context, DoujinDetailsActivity::class.java)
             intent.putExtra(DOUJIN_FILE_PATH, doujin.path.toString())
@@ -65,12 +68,9 @@ class LocalDoujinsAdapter
         return holder
     }
 
-    override fun getItemCount(): Int {
-        return doujinList.size
-    }
-
     override fun onBindViewHolder(holder: DoujinViewHolder, position: Int) {
-        holder.bind(doujinList[holder.adapterPosition])
+//        holder.bind(doujinList[holder.adapterPosition])
+        holder.bind(getItem(position))
     }
 
     fun setList(list: List<Doujin>) {
@@ -78,9 +78,14 @@ class LocalDoujinsAdapter
         notifyDataSetChanged()
     }
 
-    override fun getItemId(position: Int): Long {
-        return doujinList[position].hashCode().toLong()
-    }
+//    fun setListOnlyOneExtra(list: List<Doujin>) {
+//        doujinList = list
+//        notifyItemInserted(list.size)
+//    }
+
+//    override fun getItemId(position: Int): Long {
+//        return doujinList[position].hashCode().toLong()
+//    }
 
     fun sortByName() {
         if (currentSort == SortDirection.TITLE_ASCENDING) {
@@ -151,7 +156,7 @@ class LocalDoujinsAdapter
     }
 
     override fun onChange(position: Int): CharSequence {
-        val doujin = doujinList[position]
+        val doujin = getItem(position)
 
         return when (currentSort) {
             SortDirection.TITLE_ASCENDING -> {
