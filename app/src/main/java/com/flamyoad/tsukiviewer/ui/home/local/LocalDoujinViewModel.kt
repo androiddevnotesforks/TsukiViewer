@@ -29,9 +29,7 @@ class LocalDoujinViewModel(application: Application) : AndroidViewModel(applicat
 
     private val folderList: LiveData<List<IncludedFolder>>
 
-    private val tempFolders = MutableLiveData<MutableList<Doujin>>()
-
-    private val doujinList = MediatorLiveData<List<Doujin>>()
+    private val doujinList = MutableLiveData<List<Doujin>>()
 
     private var jobScanFolder: Job = Job()
 
@@ -47,11 +45,6 @@ class LocalDoujinViewModel(application: Application) : AndroidViewModel(applicat
         folderList = repo.folderDao.getAll()
 
         pathList = repo.pathDao.getAll()
-
-        doujinList.apply {
-            addSource(folderList) { convertFoldersToDoujins(it) }
-            addSource(tempFolders) { value = it }
-        }
     }
 
     override fun onCleared() {
@@ -59,21 +52,20 @@ class LocalDoujinViewModel(application: Application) : AndroidViewModel(applicat
         Log.d("testbug", "ViewModel onCleared() called")
     }
 
-    private fun convertFoldersToDoujins(folders: List<IncludedFolder>) {
+    fun convertFoldersToDoujins(folders: List<IncludedFolder>) {
         viewModelScope.launch {
             isFetchingDoujins.value = true
 
             withContext(Dispatchers.Default) {
-                val newList = folders.map { f -> f.dir }
-
-                for (file in newList) {
-                    val doujin = file.toDoujin()
+                for (f in folders) {
+                    val dir = f.dir
+                    val doujin = dir.toDoujin()
 
                     withContext(Dispatchers.Main) {
-                        val currentList = tempFolders.value ?: mutableListOf()
+                        val currentList = doujinList.value?.toMutableList() ?: mutableListOf()
                         if (!currentList.contains(doujin)) {
                             currentList.add(doujin)
-                            tempFolders.value = currentList
+                            doujinList.value = currentList
                         }
 
                     }
@@ -83,42 +75,30 @@ class LocalDoujinViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-//    private fun convertFoldersToDoujins(folders: List<IncludedFolder>) {
-//        viewModelScope.launch {
-//            isFetchingDoujins.value = true
-//
-//            withContext(Dispatchers.Default) {
-//                val newList = folders.map { f -> f.dir }
-//
-//                for (file in newList) {
-//                    val doujin = file.toDoujin()
-//
-//                    withContext(Dispatchers.Main) {
-//                        val currentList = tempFolders.value ?: mutableListOf()
-//                        if (!currentList.contains(doujin)) {
-//                            currentList.add(doujin)
-//                            tempFolders.value = currentList
-//                        }
-//
-//                    }
-//                }
-//            }
-//            isFetchingDoujins.value = false
-//        }
-//    }
-
     fun filterRemovedFolders(includedFolder: List<IncludedFolder>) {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val newDoujinList = includedFolder
-                    .map { folder -> folder.dir.toDoujin() }
-                    .toList()
+            isFetchingDoujins.value = true
 
-                withContext(Dispatchers.Main) {
-                    doujinList.value = newDoujinList
+            val oldDoujins = doujinList.value?.toMutableList() ?: mutableListOf()
+            val newList = includedFolder.map { folder -> folder.dir }
+
+            withContext(Dispatchers.Default) {
+
+                for (i in oldDoujins.indices) {
+                    val doujin = oldDoujins[i]
+                    if (doujin.path !in newList) {
+                        oldDoujins.removeAt(i)
+
+                        withContext(Dispatchers.Main) {
+                            doujinList.value = oldDoujins
+                        }
+                    }
                 }
             }
+
+            isFetchingDoujins.value = false
         }
+
     }
 
 //    fun filterRemovedFolders(includedFolder: List<IncludedFolder>) {

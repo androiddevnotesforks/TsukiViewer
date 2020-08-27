@@ -40,10 +40,11 @@ class LocalDoujinsFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         Log.d("testbug", "onResume() called")
-        viewmodel.checkForNewFolders()
         viewmodel.folderList().observe(this, Observer {
+            viewmodel.convertFoldersToDoujins(it)
             viewmodel.filterRemovedFolders(it)
         })
+        viewmodel.checkForNewFolders()
     }
 
     override fun onPause() {
