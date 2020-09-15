@@ -24,9 +24,9 @@ class FetchMetadataService : Service() {
 
     private val ACTION_CLOSE = "action_close"
 
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+    private var job = SupervisorJob()
 
-    private var job: Job = Job()
+    private val scope = CoroutineScope(Dispatchers.IO + job)
 
     private val binder = FetchBinder()
 
@@ -120,12 +120,12 @@ class FetchMetadataService : Service() {
     private fun fetchSingleMetadata(dir: File) {
         createNotification(dir.name)
 
-        job = coroutineScope.launch {
+        val childJob = scope.launch {
             metadataRepo?.fetchMetadata(dir)
             // delay() is not same as Thread.sleep() wtf
         }
 
-        job.invokeOnCompletion {
+        childJob.invokeOnCompletion {
             if (!ongoingQueue && queue.isEmpty()) {
                 stopForeground(true)
                 stopSelf()
@@ -184,7 +184,7 @@ class FetchMetadataService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        coroutineScope.cancel()
+        scope.coroutineContext.cancelChildren()
     }
 
     inner class FetchBinder: Binder() {

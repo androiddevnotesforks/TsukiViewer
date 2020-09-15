@@ -9,7 +9,7 @@
     android:background="@color/webDraculaBackgroundColor">
 
     <com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
-        android:id="@+id/listImages"
+        android:id="@+id/viewpager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:fastScrollPopupBgColor="@color/actionBlue"

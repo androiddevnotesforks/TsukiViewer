@@ -9,15 +9,11 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSnapHelper
-import androidx.recyclerview.widget.PagerSnapHelper
-import androidx.recyclerview.widget.RecyclerView
 import androidx.transition.Slide
 import androidx.transition.TransitionManager
 import com.flamyoad.tsukiviewer.R
 import com.flamyoad.tsukiviewer.adapter.BottomThumbnailAdapter
 import com.flamyoad.tsukiviewer.adapter.DoujinImagesAdapter
-import com.flamyoad.tsukiviewer.adapter.ReaderImageAdapter
-import com.flamyoad.tsukiviewer.utils.FastPagerSnapHelper
 import kotlinx.android.synthetic.main.activity_reader.*
 import java.io.File
 
@@ -63,19 +59,11 @@ class ReaderActivity : AppCompatActivity(), BottomThumbnailAdapter.OnItemClickLi
 
         viewmodel.scanForImages(currentDir)
 
-        val readerAdapter = ReaderImageAdapter()
-
-        val linearLayoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-
-        val snapHelper = FastPagerSnapHelper(listImages)
-
-        listImages.adapter = readerAdapter
-        listImages.layoutManager = linearLayoutManager
-        snapHelper.attachToRecyclerView(listImages)
+        val imageAdapter = ImageFragmentAdapter(this)
+        viewpager.adapter = imageAdapter
 
         viewmodel.imageList().observe(this, Observer {
-            readerAdapter.setList(it)
-            linearLayoutManager.scrollToPosition(currentAdapterPosition)
+            imageAdapter.setList(it)
         })
     }
 
@@ -105,33 +93,33 @@ class ReaderActivity : AppCompatActivity(), BottomThumbnailAdapter.OnItemClickLi
     }
 
     private fun initPageIndicator() {
-        listImages.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                super.onScrolled(recyclerView, dx, dy)
-
-                val linearLayoutManager = recyclerView.layoutManager as LinearLayoutManager
-
-                val currentPosition = linearLayoutManager.findFirstCompletelyVisibleItemPosition()
-
-                // IF -1 is returned, means the user is partially swiping the item. No item is completely visible at this point
-                // So we do not change the page number indicator
-                if (currentPosition == RecyclerView.NO_POSITION) {
-
-                    // Hides bottom sheet when the user scrolls, but not during scrolling done programmatically
-                    toggleBottomSheet(View.INVISIBLE)
-                    return
-                }
-
-                // Setting up the page number textview. Example: Page 11 / 20
-                val pageNumber = "Page: ${currentPosition + 1} / ${viewmodel.totalImageCount}"
-                txtCurrentPageNumber.text = pageNumber
-
-                // Syncs the bottom thumbnail bar with the current page number
-                val thumbnailLayoutManager =
-                    bottomListThumbnails.layoutManager as LinearLayoutManager
-                thumbnailLayoutManager.scrollToPosition(currentPosition + 1)
-            }
-        })
+//        listImages.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+//            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+//                super.onScrolled(recyclerView, dx, dy)
+//
+//                val linearLayoutManager = recyclerView.layoutManager as LinearLayoutManager
+//
+//                val currentPosition = linearLayoutManager.findFirstCompletelyVisibleItemPosition()
+//
+//                // IF -1 is returned, means the user is partially swiping the item. No item is completely visible at this point
+//                // So we do not change the page number indicator
+//                if (currentPosition == RecyclerView.NO_POSITION) {
+//
+//                    // Hides bottom sheet when the user scrolls, but not during scrolling done programmatically
+//                    toggleBottomSheet(View.INVISIBLE)
+//                    return
+//                }
+//
+//                // Setting up the page number textview. Example: Page 11 / 20
+//                val pageNumber = "Page: ${currentPosition + 1} / ${viewmodel.totalImageCount}"
+//                txtCurrentPageNumber.text = pageNumber
+//
+//                // Syncs the bottom thumbnail bar with the current page number
+//                val thumbnailLayoutManager =
+//                    bottomListThumbnails.layoutManager as LinearLayoutManager
+//                thumbnailLayoutManager.scrollToPosition(currentPosition + 1)
+//            }
+//        })
 
         bottomSheetOpener.setOnClickListener {
             toggleBottomSheet(View.VISIBLE)
@@ -155,9 +143,9 @@ class ReaderActivity : AppCompatActivity(), BottomThumbnailAdapter.OnItemClickLi
     }
 
     override fun onThumbnailClick(adapterPosition: Int) {
-        val readerLayoutManager = listImages.layoutManager as LinearLayoutManager
-
-        readerLayoutManager.scrollToPosition(adapterPosition)
+//        val readerLayoutManager = listImages.layoutManager as LinearLayoutManager
+//
+//        readerLayoutManager.scrollToPosition(adapterPosition)
 
         val thumbnailLayoutManager = bottomListThumbnails.layoutManager as LinearLayoutManager
 

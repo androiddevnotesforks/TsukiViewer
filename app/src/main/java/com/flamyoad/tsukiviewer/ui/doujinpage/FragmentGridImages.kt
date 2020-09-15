@@ -88,18 +88,18 @@ class FragmentGridImages : Fragment() {
 
         val gridLayoutManager = GridLayoutManager(context, spanCount)
 
-        listImages.adapter = adapter
-        listImages.layoutManager = gridLayoutManager
+        viewpager.adapter = adapter
+        viewpager.layoutManager = gridLayoutManager
 
         // Clears previous item decoration added.
         // Otherwise, the decors stack on top of other. 1dp will become 2dp, 2 dp will become 3dp and so on...
-        while (listImages.itemDecorationCount > 0) {
-            listImages.removeItemDecorationAt(0)
+        while (viewpager.itemDecorationCount > 0) {
+            viewpager.removeItemDecorationAt(0)
         }
 
         val itemDecoration = GridItemDecoration(spanCount, 4, includeEdge = false)
 
-        listImages.addItemDecoration(itemDecoration)
+        viewpager.addItemDecoration(itemDecoration)
 
         val newList = viewmodel.imageList().value ?: emptyList()
         adapter.setList(newList)
