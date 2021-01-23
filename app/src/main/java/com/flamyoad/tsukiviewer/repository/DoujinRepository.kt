@@ -25,13 +25,12 @@ class DoujinRepository(private val context: Context) {
     private val pathDao: IncludedPathDao = db.includedFolderDao()
     private val existingList = (context.applicationContext as MyApplication).fullDoujinList
 
-    @FlowPreview
     fun scanForDoujins(keyword: String, tags: String, shouldIncludeAllTags: Boolean)
-            : Flow<List<Doujin>> {
+            : Flow<Doujin> {
         val keywordLowerCase = keyword.toLowerCase(Locale.ROOT)
 
         val flowFromDatabase = searchFromDatabase(keywordLowerCase, tags, shouldIncludeAllTags)
-        val flowFromFileExplorer = if (tags.isBlank()) {
+        val flowFromFileExplorer: Flow<Doujin> = if (tags.isBlank()) {
             if (existingList != null) {
                 searchFromExistingList(keywordLowerCase)
             } else {
@@ -45,8 +44,7 @@ class DoujinRepository(private val context: Context) {
     }
 
     private fun searchFromDatabase(keyword: String, tags: String, shouldIncludeAllTags: Boolean)
-            : Flow<List<Doujin>> = flow {
-        val doujinList = mutableListOf<Doujin>()
+            : Flow<Doujin> = flow {
 
         if (keyword.isNotBlank() && tags.isNotBlank()) { // Search using both title and tags
             val tagList = tags.split(",")
@@ -62,7 +60,7 @@ class DoujinRepository(private val context: Context) {
                 val containsKeywordJap = item.fullTitleJapanese.contains(keyword)
 
                 if (containsKeywordEnglish || containsKeywordJap) {
-                    doujinList.addIfNotNull(item)
+                    emit(item.absolutePath.toDoujin() ?: return@flow)
                 }
             }
 
@@ -70,7 +68,7 @@ class DoujinRepository(private val context: Context) {
             val doujinDetailItems = doujinDetailsDao.findByTitle(keyword)
 
             for (item in doujinDetailItems) {
-                doujinList.addIfNotNull(item)
+                emit(item.absolutePath.toDoujin() ?: return@flow)
             }
 
         } else if (tags.isNotBlank() && keyword.isBlank()) { // Search using tags only
@@ -83,14 +81,12 @@ class DoujinRepository(private val context: Context) {
             }
 
             for (item in doujinDetailItems) {
-                doujinList.addIfNotNull(item)
+                emit(item.absolutePath.toDoujin() ?: return@flow)
             }
         }
     }
 
-    private fun searchFromFileExplorer(keyword: String): Flow<List<Doujin>> = flow {
-        val doujinList = mutableListOf<Doujin>()
-
+    private fun searchFromFileExplorer(keyword: String): Flow<Doujin> = flow {
         val includedDirs = pathDao.getAllBlocking()
         for (dir in includedDirs) {
             val pathName = dir.toString()
@@ -143,15 +139,14 @@ class DoujinRepository(private val context: Context) {
                             lastModified = doujinDir.lastModified(),
                             numberOfItems = imageList.size
                         )
-                        doujinList.add(doujin)
-                        emit(doujinList)
+                        emit(doujin)
                     }
                 }
             }
         }
     }
 
-    private fun searchFromExistingList(keyword: String): Flow<List<Doujin>> = flow {
+    private fun searchFromExistingList(keyword: String): Flow<Doujin> = flow {
         if (existingList == null) {
             return@flow
         }
@@ -160,7 +155,7 @@ class DoujinRepository(private val context: Context) {
         for (doujin in existingList) {
             if (doujin.title.toLowerCase(Locale.ROOT).contains(keyword)) {
                 newList.add(doujin)
-                emit(newList)
+                emit(doujin)
             }
         }
     }
